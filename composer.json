@@ -1,0 +1,22 @@
+{
+    "name": "nelsius/nelsius-pay-php",
+    "version": "1.0.0",
+    "description": "Official PHP SDK for the Nelsius pay Developer API",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nelsius Team",
+            "email": "nelsonsiebi@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Nelsius\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.4",
+        "ext-curl": "*",
+        "ext-json": "*"
+    }
+}
