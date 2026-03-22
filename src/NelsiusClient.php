@@ -11,6 +11,7 @@ class NelsiusClient
     private string $apiKey;
     private string $baseUrl;
     private int $timeout;
+    private bool $verifySsl;
 
     public ChargeManager $charges;
     public CheckoutManager $checkout;
@@ -21,6 +22,7 @@ class NelsiusClient
         $this->apiKey = $apiKey;
         $this->baseUrl = rtrim($options['base_url'] ?? 'https://api.nelsius.com/api/v1', '/');
         $this->timeout = $options['timeout'] ?? 30;
+        $this->verifySsl = $options['verify_ssl'] ?? true;
 
         // Initialize Managers
         $this->charges = new ChargeManager($this);
@@ -46,6 +48,10 @@ class NelsiusClient
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        
+        // SSL Verification (Useful for local development)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $this->verifySsl);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $this->verifySsl ? 2 : 0);
 
         if (strtoupper($method) === 'POST') {
             curl_setopt($ch, CURLOPT_POST, true);

@@ -1,11 +1,11 @@
 # Nelsius PHP SDK
 
-Official PHP SDK for the [Nelsius Developer API](https://nelsius.com/docs).
+Official PHP SDK by Nelson Siebi for the [Nelsius Developer API](https://nelsius.com/docs).
 
 ## Installation
 
 ```bash
-composer require nelsius/nelsius-php
+composer require nelsius/nelsius-pay-php
 ```
 
 *Note: For manual installation, require the files in `src/`.*
@@ -16,7 +16,8 @@ composer require nelsius/nelsius-php
 use Nelsius\NelsiusClient;
 
 $nelsius = new NelsiusClient('your_secret_key', [
-    'base_url' => 'https://api.nelsius.com/api/v1'
+    'base_url' => 'https://api.nelsius.com/api/v1',
+    'verify_ssl' => false // Set to false for local development (Laragon, WAMP, etc.)
 ]);
 
 // 1. Get Payment Methods
