@@ -1,6 +1,6 @@
 {
     "name": "nelsius/nelsius-pay-php",
-    "version": "1.0.2",
+    
     "description": "Official PHP SDK for the Nelsius pay Developer API",
     "license": "MIT",
     "authors": [
