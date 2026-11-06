@@ -2,25 +2,41 @@
 
 namespace Nelsius\Managers;
 
-use Nelsius\NelsiusClient;
+use GuzzleHttp\Client;
+use RuntimeException;
 
 class CheckoutManager
 {
-    private NelsiusClient $client;
-
-    public function __construct(NelsiusClient $client)
-    {
-        $this->client = $client;
-    }
+    public function __construct(private readonly Client $http) {}
 
     /**
-     * Create a new hosted checkout session
+     * Crée une session de paiement hébergée.
      *
-     * @param array $data The checkout data
-     * @return array The response from the API
+     * @param array{
+     *   amount: float|int,
+     *   currency: string,
+     *   reference?: string,
+     *   customer_email?: string,
+     *   customer_phone?: string,
+     *   return_url?: string,
+     *   cancel_url?: string,
+     *   metadata?: array
+     * } $payload
+     * @return array
+     * @throws RuntimeException
      */
-    public function createSession(array $data): array
+    public function createSession(array $payload): array
     {
-        return $this->client->request('POST', '/checkout/sessions', $data);
+        $response = $this->http->post('checkout/initiate', [
+            'json' => $payload
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        if ($response->getStatusCode() >= 400) {
+            throw new RuntimeException('Nelsius API Error: ' . json_encode($data));
+        }
+
+        return $data;
     }
 }

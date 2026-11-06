@@ -1,62 +1,131 @@
-# Nelsius PHP SDK
+# Nelsius Pay SDK for PHP & Laravel (V2)
 
-Official PHP SDK by Nelson Siebi for the [Nelsius Developer API](https://nelsius.com/docs).
+[![Packagist Version](https://img.shields.io/packagist/v/nelsius/nelsius-pay-php.svg?style=flat-square)](https://packagist.org/packages/nelsius/nelsius-pay-php)
+[![Total Downloads](https://img.shields.io/packagist/dt/nelsius/nelsius-pay-php.svg?style=flat-square)](https://packagist.org/packages/nelsius/nelsius-pay-php)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-## Installation
+SDK officiel PHP & Laravel pour l'API **Nelsius Pay V2**. Acceptez simplement les paiements Mobile Money (Orange Money, MTN MoMo), cartes bancaires et virements dans toute l'Afrique.
+
+---
+
+## 📦 Installation
 
 ```bash
 composer require nelsius/nelsius-pay-php
 ```
 
-*Note: For manual installation, require the files in `src/`.*
+---
 
-## Quick Start
+## ⚡ Utilisation avec Laravel
 
-```php
-use Nelsius\NelsiusClient;
+Ce package supporte l'**Auto-Discovery** de Laravel (Laravel 9, 10, 11+).
 
-$nelsius = new NelsiusClient('your_secret_key', [
-    'base_url' => 'https://api.nelsius.com/api/v1',
-    'verify_ssl' => false // Set to false for local development (Laragon, WAMP, etc.)
-]);
+### 1. Configuration `.env`
 
-// 1. Get Payment Methods
-$methods = $nelsius->charges->methods();
+Ajoutez vos clés d'API dans votre fichier `.env` :
 
-// 2. Create Hosted Checkout Session
-$checkout = $nelsius->checkout->createSession([
-    'amount' => 5000,
-    'currency' => 'XAF',
-    'reference' => 'ORDER_12345',
-    'description' => 'Purchase Description',
-    'return_url' => 'https://your-site.com/success',
-    'cancel_url' => 'https://your-site.com/cancel',
-    'customer' => [
-        'email' => 'customer@example.com',
-        'name' => 'Customer Name'
-    ]
-]);
-
-header('Location: ' . $checkout['data']['checkout_url']);
-
-// 3. Create Direct Charge (Mobile Money)
-$charge = $nelsius->charges->create([
-    'amount' => 2500,
-    'currency' => 'XAF',
-    'method' => 'mobile_money',
-    'operator' => 'orange',
-    'customer_phone' => '690000000',
-    'reference' => 'TXN_REF_001'
-]);
+```env
+NELSIUS_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxx
+NELSIUS_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxx
+NELSIUS_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx
 ```
 
-## Features
+Optionnel : publiez le fichier de configuration :
+```bash
+php artisan vendor:publish --tag=nelsius-config
+```
 
-- **Charges**: Direct payment processing (Mobile Money, Crypto, etc.)
-- **Checkout**: Hosted payment pages for easier integration.
-- **Balance**: Check your merchant account balance programmatically.
-- **Payment Methods**: Retrieve supported payment methods dynamically.
+### 2. Créer une session de paiement hébergée (Checkout)
 
-## License
+```php
+use Nelsius\Laravel\Facades\Nelsius;
 
-MIT
+$session = Nelsius::checkout()->createSession([
+    'amount'            => 5000,
+    'currency'          => 'XAF',
+    'description'       => 'Paiement commande #4829',
+    'customer_name'     => 'Alice Mbarga',
+    'customer_email'    => 'alice@example.com',
+    'customer_phone'    => '+237699112233',
+    'default_country'   => 'CM', // Cameroun par défaut
+    'allowed_countries' => ['CM', 'CI', 'SN'],
+    'return_url'        => route('payment.success'),
+    'cancel_url'        => route('payment.cancel'),
+    'metadata'          => [
+        'order_id' => 4829,
+    ],
+]);
+
+// Redirigez l'utilisateur vers la page de paiement NelsiusPay :
+return redirect($session['payment_url']);
+```
+
+---
+
+## 🐘 Utilisation en PHP Vanilla
+
+```php
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Nelsius\NelsiusClient;
+
+$client = new NelsiusClient('sk_live_xxxxxxxxxxxxxxxx');
+
+// 1. Checkout Session
+$session = $client->checkout->createSession([
+    'amount'          => 2500,
+    'currency'        => 'XAF',
+    'customer_name'   => 'Paul Biya',
+    'customer_email'  => 'paul@example.com',
+    'default_country' => 'CM',
+    'return_url'      => 'https://mon-site.com/succes',
+    'cancel_url'      => 'https://mon-site.com/annule',
+]);
+
+header('Location: ' . $session['payment_url']);
+exit;
+```
+
+### 2. Débit Direct Mobile Money (DirectPay)
+
+```php
+$charge = $client->charges->create([
+    'amount'         => 1000,
+    'currency'       => 'XAF',
+    'payment_method' => 'orange_money', // 'orange_money' | 'mtn_momo'
+    'phone_number'   => '699112233',
+    'country'        => 'CM',
+    'reference'      => 'TX-' . uniqid(),
+]);
+
+echo "Statut : " . $charge['status'];
+```
+
+---
+
+## 🔒 Vérification des Webhooks
+
+```php
+use Nelsius\Utils\WebhookSignature;
+
+$payload   = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_NELSIUS_SIGNATURE'] ?? '';
+$secret    = 'whsec_xxxxxxxxxxxxxxxxxxxx';
+
+if (!WebhookSignature::verify($payload, $signature, $secret)) {
+    http_response_code(401);
+    exit('Signature invalide');
+}
+
+$event = json_decode($payload, true);
+
+if ($event['event'] === 'payment.success') {
+    // Validez la commande du client
+}
+```
+
+---
+
+## 📄 Licence
+
+MIT © [Nelsius](https://nelsiuspay.com)

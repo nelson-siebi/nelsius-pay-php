@@ -2,47 +2,58 @@
 
 namespace Nelsius\Managers;
 
-use Nelsius\NelsiusClient;
+use GuzzleHttp\Client;
+use RuntimeException;
 
 class ChargeManager
 {
-    private NelsiusClient $client;
+    public function __construct(private readonly Client $http) {}
 
-    public function __construct(NelsiusClient $client)
+    /**
+     * Déclenche un paiement direct USSD (Mobile Money).
+     *
+     * @param array{
+     *   amount: float|int,
+     *   currency: string,
+     *   phone: string,
+     *   operator: string,
+     *   reference?: string
+     * } $payload
+     * @return array
+     * @throws RuntimeException
+     */
+    public function create(array $payload): array
     {
-        $this->client = $client;
+        $response = $this->http->post('payments/charge', [
+            'json' => $payload
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        if ($response->getStatusCode() >= 400) {
+            throw new RuntimeException('Nelsius API Error: ' . json_encode($data));
+        }
+
+        return $data;
     }
 
     /**
-     * Create a new direct charge
+     * Vérifie le statut d'un paiement.
      *
-     * @param array $data The charge data
-     * @return array The response from the API
+     * @param string $reference
+     * @return array
+     * @throws RuntimeException
      */
-    public function create(array $data): array
+    public function getStatus(string $reference): array
     {
-        return $this->client->request('POST', '/charges', $data);
-    }
+        $response = $this->http->get('payments/' . urlencode($reference));
+        
+        $data = json_decode($response->getBody()->getContents(), true);
 
-    /**
-     * Get a direct charge by ID
-     *
-     * @param string $id The charge ID
-     * @return array The response from the API
-     */
-    public function get(string $id): array
-    {
-        return $this->client->request('GET', "/charges/$id");
-    }
+        if ($response->getStatusCode() >= 400) {
+            throw new RuntimeException('Nelsius API Error: ' . json_encode($data));
+        }
 
-    /**
-     * Get the list of payment methods
-     *
-     * @param array $filters Filters for the request
-     * @return array The response from the API
-     */
-    public function methods(array $filters = []): array
-    {
-        return $this->client->request('GET', '/payment-methods', $filters);
+        return $data;
     }
 }
